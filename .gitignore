@@ -19,6 +19,7 @@ lib64/
 parts/
 sdist/
 var/
+libs/
 wheels/
 share/python-wheels/
 *.egg-info/
@@ -144,6 +145,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+nodes/config.yaml
 libs/
 # PyCharm
 #  JetBrains specific template is maintainted in a separate JetBrains.gitignore that can

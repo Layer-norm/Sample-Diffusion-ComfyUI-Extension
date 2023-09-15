@@ -4,9 +4,9 @@ import os
 import soundfile as sf
 
 from comfy.model_management import get_torch_device
-from custom_nodes.SampleDiffusion.EXT_SampleDiffusion import AudioInference
-from diffusion_library.sampler import SamplerType
-from diffusion_library.scheduler import SchedulerType
+from .EXT_SampleDiffusion import AudioInference
+from ..libs.sample_generator.diffusion_library.sampler import SamplerType
+from ..libs.sample_generator.diffusion_library.scheduler import SchedulerType
 
 # -------------
 # LIST CREATION
@@ -233,7 +233,7 @@ class BulkVariation:
     RETURN_NAMES = ("tensor_list", "sample_rate")
     FUNCTION = "do_variation"
 
-    CATEGORY = "Audio/SampleDiffusion"
+    CATEGORY = "Audio/Sample-Diffusion-ComfyUI-Extension"
 
     def do_variation(self, audio_model, batch_size, steps, sampler, sigma_min, sigma_max, rho, scheduler, tensor_list, noise_level=0.7, seed=-1):
         audio_inference = AudioInference()

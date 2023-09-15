@@ -1,4 +1,4 @@
-import { app } from "/scripts/app.js";
+import { app } from "../../scripts/app.js";
 
 function addPlaybackWidget(node, name, url) {
 	let isTick = true;

@@ -48,9 +48,6 @@ async def upload_audio(request):
     post = await request.post()
     file = post.get("audio")
 
-    print(type(file))
-    print(type(file.filename))
-
     if file and file.file:
         filename = file.filename
         if not filename:

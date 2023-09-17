@@ -1,2 +1,7 @@
 librosa
 pedalboard
+audio_diffusion_pytorch
+diffusion
+k_diffusion
+torchaudio
+soundfile

@@ -45,7 +45,7 @@ def cleartemp():
     audio_tmp_path = Path.joinpath(Path(__file__).parents[2], "audio_temp")
     
     try:
-        os.remove(audio_tmp_path)
+        shutil.rmtree(audio_tmp_path)
     except BaseException:
         ...
 

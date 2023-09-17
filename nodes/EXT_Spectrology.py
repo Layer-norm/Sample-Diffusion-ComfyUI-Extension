@@ -26,19 +26,11 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import random
 import numpy as np
+from pathlib import Path
 
 def get_comfy_dir():
-    dirs = __file__.split('\\')
-    comfy_index = None
-    for i, dir in enumerate(dirs):
-        if dir == "ComfyUI":
-            comfy_index = i
-            break
-    if comfy_index is not None:
-        # Join the list up to the "ComfyUI" folder
-        return '\\'.join(dirs[:comfy_index+1])
-    else:
-        return None
+    dirs = Path(__file__).parents[3]
+    return dirs
 
 class Plot_Spectrogram():
     def __init__(self):
@@ -97,7 +89,10 @@ def save_spectrogram_image(audio_tensor, sample_rate=44100, nperseg=512, noverla
         plt.ylabel('Frequency [Hz]')
         plt.xlabel('Time [sec]')
         plt.colorbar()
-    filename = f'{get_comfy_dir()}\\temp\\spectrogram_{random.randint(0,1000000000000000000)}.png'
+    temp_filename = f'spectrogram_{random.randint(0,1000000000000000000)}.png'
+
+    filename = Path.joinpath(get_comfy_dir(),'audio_temp', temp_filename)
+
     # Save the spectrogram to a file
     if not os.path.exists(os.path.dirname(filename)):
         os.makedirs(os.path.dirname(filename))
@@ -154,9 +149,9 @@ class ImageToSpectral():
             rotate = rotate == "Enabled"
             invert = invert == "Enabled"
             name = str(random.randint(0,100000000))
-            if not os.path.exists(os.path.join(get_comfy_dir(), 'temp\\')):
-                os.makedirs(os.path.join(get_comfy_dir(), 'temp\\'))
-            base_path = os.path.join(get_comfy_dir(), 'temp\\', name)
+            if not os.path.exists(Path.joinpath(get_comfy_dir(), 'audio_temp')):
+                os.makedirs(Path.joinpath(get_comfy_dir(), 'audio_temp'))
+            base_path = str(Path.joinpath(get_comfy_dir(), 'audio_temp', name))
             png_input = os.path.join(base_path + '.png')
             audio_output = os.path.join(base_path + '_spectogram.wav')
             # save input tensor image

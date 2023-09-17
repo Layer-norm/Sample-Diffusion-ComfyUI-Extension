@@ -1,4 +1,5 @@
 import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js"
 
 function addPlaybackWidget(node, name, url) {
 	let isTick = true;
@@ -50,7 +51,7 @@ function addPlaybackWidget(node, name, url) {
 }
 
 app.registerExtension({
-	name: "pysssss.PlayAudio",
+	name: "SampleDiff.PlayAudio",
 	async beforeRegisterNodeDef(nodeType, nodeData, app) {
 		const AudioPreviews = ["PreviewAudioFile", "PreviewAudioTensor"]
 		if (AudioPreviews.includes(nodeData.name)) {
@@ -71,7 +72,7 @@ app.registerExtension({
 
 				// For each file create a seek bar + play button
 				for (const file of data) {
-					addPlaybackWidget(this, file, `/view?type=temp&filename=${encodeURIComponent(file)}`);
+					addPlaybackWidget(this, file, api.apiURL(`/view?type=temp&filename=${encodeURIComponent(file)}`));
 				}
 			};
 		} else if (nodeData.name === "LoadAudioFile") {
@@ -86,8 +87,8 @@ app.registerExtension({
 					try {
 						// Wrap file in formdata so it includes filename
 						const body = new FormData();
-						body.append("file", file);
-						const resp = await fetch("/samplediffusion/upload/audio", {
+						body.append("audio", file);
+						const resp = await api.fetchApi("/samplediffusion/upload/audio", {
 							method: "POST",
 							body,
 						});
@@ -111,29 +112,29 @@ app.registerExtension({
 					}
 				}
 
-				const fileInput = document.createElement("input");
-				Object.assign(fileInput, {
+				const audioInput = document.createElement("input");
+				Object.assign(audioInput, {
 					type: "file",
 					accept: "audio/mpeg,audio/wav,audio/x-wav",
 					style: "display: none",
 					onchange: async () => {
-						if (fileInput.files.length) {
-							await uploadFile(fileInput.files[0], this);
+						if (audioInput.files.length) {
+							await uploadFile(audioInput.files[0], this);
 						}
 					},
 				});
-				document.body.append(fileInput);
+				document.body.append(audioInput);
 
 				// Create the button widget for selecting the files
 				uploadWidget = this.addWidget("button", "choose file to upload", "audio", () => {
-					fileInput.click();
+					audioInput.click();
 				});
 				uploadWidget.serialize = false;
 
 				// Add handler to check if an image is being dragged over our node
 				this.onDragOver = function (e) {
 					if (e.dataTransfer && e.dataTransfer.items) {
-						const file = [...e.dataTransfer.items].find((f) => f.kind === "file" && f.type.startsWith("audio/"));
+						const file = [...e.dataTransfer.items].find((f) => f.kind === "audio" && f.type.startsWith("audio/"));
 						return !!file;
 					}
 

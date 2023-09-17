@@ -27,30 +27,29 @@ import soundfile as sf
 import torchaudio
 
 def get_comfy_dir():
-    dirs = __file__.split('\\')
-    comfy_index = None
-    for i, dir in enumerate(dirs):
-        if dir == "ComfyUI":
-            comfy_index = i
-            break
-    if comfy_index is not None:
-        # Join the list up to the "ComfyUI" folder
-        return '\\'.join(dirs[:comfy_index+1])
-    else:
-        return None
+    dirs = Path(__file__).parents[3]
+    return dirs
+
+def get_input_dir():
+    dirs = Path.joinpath(Path(__file__).parents[1], "audio_input")
+    return dirs
 
 PromptServer.instance.app._client_max_size = 250 * 1024 * 1024 #  250 MB
 
 # Add route for uploading audio, duplicates image upload but to audio_input
-@PromptServer.instance.routes.post("/Sample-Diffusion-ComfyUI-Extension/upload/audio")
+@PromptServer.instance.routes.post("/samplediffusion/upload/audio")
 async def upload_audio(request):
-    upload_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "audio_input")
+    # upload_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "audio_input")
+    upload_dir = get_input_dir()
 
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
     
     post = await request.post()
-    file = post.get("file")
+    file = post.get("audio")
+
+    print(type(file))
+    print(type(file.filename))
 
     if file and file.file:
         filename = file.filename
@@ -60,7 +59,7 @@ async def upload_audio(request):
         if os.path.exists(os.path.join(upload_dir, filename)):
             os.remove(os.path.join(upload_dir, filename))
 
-        filepath = os.path.join(upload_dir, filename)
+        filepath = Path.joinpath(upload_dir, filename)
 
         with open(filepath, "wb") as f:
             f.write(file.file.read())
@@ -70,14 +69,24 @@ async def upload_audio(request):
         return web.Response(status=400)
 
 # Add route for getting audio, duplicates view image but allows audio_input
-@PromptServer.instance.routes.get("/Sample-Diffusion-ComfyUI-Extension/audio")
+@PromptServer.instance.routes.get("/samplediffusion/audio")
 async def view_image(request):
     if "filename" in request.rel_url.query:
         type = request.rel_url.query.get("type", "audio_input")
         if type not in ["output", "input", "temp", "audio_input"]:
             return web.Response(status=400)
 
-        output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), type)
+        # output_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), type)
+        match type:
+            case "audio_input":
+                output_dir = get_input_dir()
+            case "output":
+                output_dir = get_comfy_dir().joinpath("output", "audio_samples")
+            case "input":
+                output_dir = get_comfy_dir().joinpath("input")
+            case "temp":
+                output_dir = get_comfy_dir().joinpath("audio_tmp")
+
         if "subfolder" in request.rel_url.query:
             full_output_dir = os.path.join(output_dir, request.rel_url.query["subfolder"])
             if os.path.commonpath((os.path.abspath(full_output_dir), output_dir)) != output_dir:
@@ -187,7 +196,7 @@ class AudioInference():
     RETURN_NAMES = ("out_paths", "tensor", "sample_rate")
     FUNCTION = "do_sample"
 
-    CATEGORY = "Audio/Sample-Diffusion-ComfyUI-Extension"
+    CATEGORY = "Audio/SampleDiffusion"
 
     def do_sample(self, audio_model, mode, batch_size, steps, sampler, sigma_min, sigma_max, rho, scheduler, input_audio_path='', input_tensor=None, noise_level=0.7, seed=-1):
 
@@ -256,7 +265,7 @@ class AudioInference():
         )
         
         response = request_handler.process_request(request)#, lambda **kwargs: print(f"{kwargs['step'] / kwargs['x']}"))
-        paths = save_audio(response.result, f"{comfy_dir}/temp", wrapper.sample_rate, f"{seed}_{random.randint(0, 100000)}")
+        paths = save_audio(response.result, f"{comfy_dir}/audio_temp", wrapper.sample_rate, f"{seed}_{random.randint(0, 100000)}")
         return (paths, response.result, wrapper.sample_rate)
 
 class SaveAudio():
@@ -320,15 +329,22 @@ class LoadAudio():
             waveform, samplerate = None, None
             return (file_path, samplerate, waveform)
 
-        file_path = f'{comfy_dir}/custom_nodes/Sample-Diffusion-ComfyUI-Extension/audio_input/{file_path}'
+        file_path = str(Path.joinpath(Path(__file__).parents[1], "audio_input", file_path))
+
+        print("hello")
+        print(file_path)
+        print("bye")
 
         if file_path.endswith('.mp3'):
             if os.path.exists(file_path.replace('.mp3', '')+'.wav'):
                 file_path = file_path.replace('.mp3', '')+'.wav'
             else:
-                data, samplerate = sf.read(file_path)
-                sf.write(file_path.replace('.mp3', '')+'.wav', data, samplerate)
-
+                try:
+                    data, samplerate = sf.read(file_path.replace('.mp3', '')+'.wav')
+                    sf.write(file_path.replace('.mp3', '')+'.wav', data, samplerate)
+                except RuntimeError:
+                    subprocess.call(['ffmpeg', '-i', file_path, '-f', 'wav', file_path.replace('.mp3', '')+'.wav'])
+    
             os.remove(file_path.replace('.wav', '.mp3'))
 
         waveform, samplerate = torchaudio.load(file_path)
@@ -364,7 +380,7 @@ class LoadAudioModelDD():
     FUNCTION = "DoLoadAudioModelDD"
     OUTPUT_NODE = True
 
-    CATEGORY = "Audio/Sample-Diffusion-ComfyUI-Extension"
+    CATEGORY = "Audio/SampleDiffusion"
 
     def DoLoadAudioModelDD(self, model, chunk_size, sample_rate, optimize_memory_use, autocast):
         global models_folder
@@ -408,7 +424,10 @@ class PreviewAudioFile():
         # get filenames with extensions from paths
 
         filenames = [os.path.basename(path) for path in paths]
-        return {"result": (filenames,), "ui": filenames}
+
+        path_dist = {"result": (filenames,), "ui": filenames}
+
+        return path_dist
 
 class PreviewAudioTensor():
     @classmethod
@@ -432,7 +451,7 @@ class PreviewAudioTensor():
 
     def PreviewAudioTensor(self, tensor, sample_rate, tame):
         # fix slashes
-        paths = save_audio((0.5 * tensor).clamp(-1,1) if(tame == 'Enabled') else tensor, f"{comfy_dir}/temp", sample_rate, f"{random.randint(0, 10000000000)}")
+        paths = save_audio((0.5 * tensor).clamp(-1,1) if(tame == 'Enabled') else tensor, f"{comfy_dir}/audio_temp", sample_rate, f"{random.randint(0, 10000000000)}")
         paths = [path.replace("\\", "/") for path in paths]
         # get filenames with extensions from paths
         paths = [os.path.basename(path) for path in paths]

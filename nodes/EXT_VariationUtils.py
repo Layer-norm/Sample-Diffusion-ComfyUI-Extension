@@ -2,6 +2,7 @@ import torch
 import torchaudio
 import os
 import soundfile as sf
+import subprocess
 
 from comfy.model_management import get_torch_device
 from .EXT_SampleDiffusion import AudioInference
@@ -88,11 +89,14 @@ class LoadAudioDir:
         for file_path in os.listdir(dir_path):
             if os.path.isfile(f'{dir_path}/{file_path}'):
                 if file_path.endswith('.mp3'):
-                    if os.path.exists(file_path.replace('.mp3', '') + '.wav'):
-                        file_path = file_path.replace('.mp3', '') + '.wav'
+                    if os.path.exists(file_path.replace('.mp3', '')+'.wav'):
+                        file_path = file_path.replace('.mp3', '')+'.wav'
                     else:
-                        data, sample_rate = sf.read(file_path)
-                        sf.write(file_path.replace('.mp3', '') + '.wav', data, sample_rate)
+                        try:
+                            data, samplerate = sf.read(file_path.replace('.mp3', '')+'.wav')
+                            sf.write(file_path.replace('.mp3', '')+'.wav', data, samplerate)
+                        except RuntimeError:
+                            subprocess.call(['ffmpeg', '-i', file_path, '-f', 'wav', file_path.replace('.mp3', '')+'.wav'])
 
                     os.remove(file_path.replace('.wav', '.mp3'))
 

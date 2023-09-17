@@ -4,6 +4,7 @@ import torch
 import torchaudio
 import os
 import random
+from pathlib import Path
 
 
 NOTES = ['A', 'A#', 'B', 'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#']
@@ -63,27 +64,17 @@ class WaveGenerator():
         tensor = create_signal(keys=keys, sample_rate=sample_rate, sample_length=chunk_size, amplitude=amplitude, waveform=waveform)
         rand = random.randint(0, 100000000000)
     
-        dirs = __file__.split('\\')
-        comfy_index = None
-        for i, dir in enumerate(dirs):
-            if dir == "ComfyUI":
-                comfy_index = i
-                break
-        if comfy_index is not None:
-            # Join the list up to the "ComfyUI" folder
-            comfy_dir = '\\'.join(dirs[:comfy_index+1])
+        comfy_dir = Path(__file__).parents[3]
 
 
         for ix, sample in enumerate(tensor):
-            if not os.path.exists(os.path.join(comfy_dir, 'temp')):
-                os.makedirs(os.path.join(comfy_dir, 'temp'))
-            path = os.path.join(comfy_dir, 'temp\\', f"sample_{rand}.wav")
+            if not os.path.exists(Path.joinpath(comfy_dir, 'audio_temp')):
+                os.makedirs(Path.joinpath(comfy_dir, 'audio_temp'))
+            path = os.path.join(comfy_dir, 'audio_temp', f"sample_{rand}.wav")
             open(path, "a").close()
             
             output = sample.cpu()
             torchaudio.save(path, output, sample_rate)
-
-
 
         return (path, tensor, sample_rate)
 
